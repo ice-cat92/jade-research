@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中国玉石文化研究 — 荆楚玉文化·绿松石·水晶·玉器</title>
+<!-- ECharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1923;
+    --panel-bg: #1a2736;
+    --text: #c8d6e5;
+    --text-dim: #8395a7;
+    --accent: #e8b86d;
+    --accent2: #4fc3f7;
+    --border: #2a3a4a;
+    --hover: #253648;
+    --jade: #4fc3f7;
+    --turquoise: #4dd0e1;
+    --crystal: #ce93d8;
+    --agate: #ef5350;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ===== 左侧面板 ===== */
+  .sidebar {
+    width: 380px;
+    min-width: 380px;
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+  }
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(232,184,109,0.08) 0%, transparent 100%);
+  }
+  .sidebar-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #f5d89a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .sidebar-header .subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .sidebar-nav::-webkit-scrollbar { width: 4px; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* 省份节点 */
+  .province-node {
+    border-bottom: 1px solid rgba(42,58,74,0.5);
+  }
+  .province-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+    gap: 10px;
+  }
+  .province-header:hover { background: var(--hover); }
+  .province-header.active {
+    background: rgba(232,184,109,0.12);
+    border-left: 3px solid var(--accent);
+    padding-left: 17px;
+  }
+  .province-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .province-header.active .province-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .province-header.has-data .province-dot { background: var(--accent2); }
+  .province-name {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .province-badge {
+    font-size: 10px;
+    background: rgba(79,195,247,0.15);
+    color: var(--accent2);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .province-arrow {
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform 0.3s;
+  }
+  .province-header.open .province-arrow { transform: rotate(90deg); }
+
+  /* 城市节点 */
+  .city-list { display: none; background: rgba(0,0,0,0.15); }
+  .city-list.open { display: block; }
+  .city-node {
+    padding: 10px 20px 10px 40px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .city-node:hover { background: var(--hover); }
+  .city-node.active {
+    background: rgba(79,195,247,0.1);
+    border-left: 2px solid var(--accent2);
+    padding-left: 38px;
+  }
+  .city-icon { font-size: 14px; }
+
+  /* 分类标签 */
+  .category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 20px 12px 56px;
+    display: none;
+  }
+  .city-node.active + .category-tags { display: flex; }
+  .category-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .category-tag:hover, .category-tag.selected {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .category-tag.jade { border-color: var(--jade); }
+  .category-tag.jade.selected { background: rgba(79,195,247,0.25); }
+  .category-tag.turquoise { border-color: var(--turquoise); }
+  .category-tag.turquoise.selected { background: rgba(77,208,225,0.25); }
+  .category-tag.crystal { border-color: var(--crystal); }
+  .category-tag.crystal.selected { background: rgba(206,147,216,0.25); }
+  .category-tag.agate { border-color: var(--agate); }
+  .category-tag.agate.selected { background: rgba(239,83,80,0.25); }
+
+  .sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* ===== 主区域 ===== */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* 地图容器 */
+  .map-container {
+    flex: 1;
+    position: relative;
+  }
+  #china-map {
+    width: 100%;
+    height: 100%;
+  }
+  .map-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    color: var(--text-dim);
+    pointer-events: none;
+    background: rgba(15,25,35,0.85);
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .map-legend {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(26,39,54,0.92);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    z-index: 5;
+    backdrop-filter: blur(10px);
+  }
+  .map-legend .title { font-size: 10px; color: var(--text-dim); margin-bottom: 10px; letter-spacing: 2px; text-transform: uppercase; }
+  .map-legend .item { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 11px; }
+  .map-legend .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .map-legend .dot.jade { background: #4fc3f7; box-shadow: 0 0 6px rgba(79,195,247,0.5); }
+  .map-legend .dot.turquoise { background: #4dd0e1; box-shadow: 0 0 6px rgba(77,208,225,0.5); }
+  .map-legend .dot.crystal { background: #ce93d8; box-shadow: 0 0 6px rgba(206,147,216,0.5); }
+  .map-legend .dot.agate { background: #ef5350; box-shadow: 0 0 6px rgba(239,83,80,0.5); }
+  .map-legend .dot.gemstone { background: #e8b86d; box-shadow: 0 0 6px rgba(232,184,109,0.5); }
+
+  /* 底部详情面板 */
+  .detail-panel {
+    height: 0;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border);
+    overflow-y: auto;
+    transition: height 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  .detail-panel.open { height: 320px; }
+  .detail-panel::-webkit-scrollbar { width: 4px; }
+  .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .detail-inner {
+    padding: 24px 32px;
+    max-width: 1000px;
+  }
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .detail-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .detail-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    background: rgba(79,195,247,0.2);
+    color: var(--accent2);
+  }
+  .detail-close {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  .detail-close:hover { background: var(--hover); color: #fff; }
+
+  .detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .meta-item {
+    font-size: 12px;
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .meta-item strong { color: var(--accent); margin-right: 4px; }
+  .detail-desc {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .detail-source {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .detail-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    gap: 12px;
+  }
+  .detail-empty .icon { font-size: 48px; opacity: 0.4; }
+  .detail-empty .text { font-size: 14px; }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; min-width: 100%; max-height: 45vh; }
+    .detail-panel.open { height: 40vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 左侧导航面板 ===== -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>🏺 中国玉石文化研究</h1>
+    <div class="subtitle">荆楚玉文化 · 绿松石 · 水晶 · 玉器</div>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav">
+    <!-- 由 JS 动态生成 -->
+  </nav>
+  <div class="sidebar-footer">
+    数据来源：论文整理 · 点击地图或左侧导航浏览
+  </div>
+</aside>
+
+<!-- ===== 主区域 ===== -->
+<main class="main-area">
+  <div class="map-container">
+    <div id="china-map"></div>
+    <div class="map-legend">
+      <div class="title">● 分类图例</div>
+      <div class="item"><span class="dot jade"></span> 玉器 (Jade)</div>
+      <div class="item"><span class="dot turquoise"></span> 绿松石 (Turquoise)</div>
+      <div class="item"><span class="dot crystal"></span> 水晶 (Crystal)</div>
+      <div class="item"><span class="dot agate"></span> 玛瑙 (Agate)</div>
+      <div class="item"><span class="dot gemstone"></span> 宝石 (Gemstone)</div>
+    </div>
+    <div class="map-hint">💡 点击地图上的高亮省份查看详情 | 滚轮缩放 | 拖拽平移</div>
+  </div>
+
+  <!-- 底部详情面板 -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-inner" id="detailInner">
+      <div class="detail-empty">
+        <span class="icon">📍</span>
+        <span class="text">点击地图上的省份或左侧导航查看玉石文化详情</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ================================================================
+// 数据层
+// ================================================================
+
+const PROVINCE_DATA = {
+  '湖北省': {
+    englishName: 'Hubei',
+    hasData: true,
+    cities: {
+      '随州市': {
+        jade: [
+          { title: '曾侯乙墓出土玉器', site: '随州擂鼓墩曾侯乙墓', dynasty: '战国早期（约公元前433年）', craft: '透雕、浅浮雕、圆雕、阴刻、镂空、镶嵌', desc: '曾侯乙墓出土玉器300余件，包括龙凤玉佩、玉璜、玉琀、玉璧等。其中四节龙凤玉佩最为精美，由一整块玉料雕琢成四个可活动节段，饰以龙纹、凤纹，体现了战国楚地玉器工艺的巅峰水平。玉器纹饰以龙凤纹为主，带有鲜明的楚文化特征。部分玉器存在改制现象（前代玉器被重新加工），反映了"好玉"和"惜玉"的传统。', source: '曾侯乙墓出土玉器解读——以四节龙凤玉佩为例；曾侯乙墓玉器的改制-张昌平；曾侯乙墓古玉器纹饰与工艺特点' },
+          { title: '曾侯乙墓玉器材质与产源', site: '随州擂鼓墩曾侯乙墓', dynasty: '战国早期', craft: '选料、切割、琢磨、抛光', desc: '对曾侯乙墓出土玉器进行材质分析发现，玉料来源多样，包括新疆和田玉、南阳独山玉及本地玉料。玉器表面光泽度高，反映了高超的抛光技术。部分玉器使用改制工艺——将前代旧玉重新切割打磨成新器型，体现了玉料的珍贵与工匠的智慧。', source: '湖北随州曾侯乙墓出土玉器材质分析与产源初探-刘继富' },
+          { title: '曾侯乙墓四节龙凤玉佩', site: '随州擂鼓墩', dynasty: '战国早期', craft: '活节透雕、双面雕、镂空', desc: '四节龙凤玉佩为曾侯乙墓代表性玉器，以一块整玉琢成四节，节间以环扣相连，可活动折叠。每节饰以龙凤纹样，造型灵动。全器共刻有37条龙、7只凤和10条蛇，纹饰繁复精美，是战国楚式玉雕的代表作。', source: '曾侯乙墓出土玉器解读——以四节龙凤玉佩为例' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '荆州市': {
+        jade: [
+          { title: '熊家冢楚墓出土玉器', site: '荆州熊家冢楚墓', dynasty: '战国中晚期', craft: '圆雕、透雕、阴刻、减地浮雕', desc: '熊家冢楚墓是已发现规模最大的楚国贵族墓葬之一。出土龙凤虺形玉佩造型独特，集龙、凤、虺（小蛇）三种动物于一体。玉器纹饰以楚式龙凤为主题，表达了楚人的信仰与审美。祔冢殉葬墓也出土大量玉器，经玉石学分析，玉料来源包括和田玉、独山玉等。', source: '荆州熊家冢楚墓出土龙凤虺形玉佩造型及纹饰分析应用；熊家冢祔冢殉葬墓出土玉器的玉石学研究-刘继富；荆州熊家冢玉器服饰考察报告-常静' },
+          { title: '荆州熊家冢水晶珠饰', site: '荆州熊家冢墓地', dynasty: '战国中晚期', craft: '钻孔、打磨、抛光', desc: '熊家冢墓地出土的水晶珠饰经光谱学分析，显示其加工工艺精湛。水晶珠饰的钻孔技术表明当时已掌握高硬度材料的加工方法。珠饰形制多样，有圆形、管形、多面体等，反映了战国时期楚地水晶加工的高超水平。', source: '湖北荆州熊家冢墓地出土水晶珠饰的光谱学特征及加工工艺分析-曹懿' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '武汉市': {
+        turquoise: [
+          { title: '盘龙城遗址绿松石器', site: '武汉黄陂盘龙城遗址', dynasty: '商代（约公元前1600-1300年）', craft: '镶嵌、打磨、钻孔、拼合', desc: '盘龙城是长江中游地区重要的商代城址。遗址出土绿松石器包括镶嵌绿松石铜牌、金片绿松石兽形器等。杨家湾M13、M17等墓葬出土的绿松石镶嵌器工艺精湛。产源研究表明，盘龙城绿松石主要来自湖北竹山及周边矿区，说明商代已存在绿松石的远程贸易路线。', source: '湖北黄陂盘龙城遗址出土绿松石产源研究-刘玲；盘龙城杨家湾"金片绿松石兽形器"的原貌重建研究-唐际根；武汉市盘龙城遗址杨家湾商代墓葬出土绿松石器-付海龙' },
+          { title: '盘龙城金片绿松石兽形器', site: '武汉黄陂盘龙城杨家湾M17', dynasty: '商代', craft: '金片镶嵌、绿松石拼合、兽形造型', desc: '杨家湾M17出土的金片绿松石兽形器是商代绿松石镶嵌工艺的代表作。器物以金片为底，上嵌绿松石片，构成兽面纹样。原貌重建研究揭示了其制作工艺：先制作金质底托，再将打磨好的绿松石片嵌入，形成华丽的视觉效果，反映了商代贵族对绿松石的珍视。', source: '盘龙城杨家湾M17出土青铜牌形器和金片绿松石器的复原-孙卓；盘龙城杨家湾"金片绿松石兽形器"的原貌重建研究-唐际根' }
+        ],
+        jade: [],
+        crystal: [],
+        agate: []
+      },
+      '十堰市': {
+        turquoise: [
+          { title: '湖北竹山绿松石矿产', site: '十堰市竹山县', dynasty: '古今（新石器时代至今）', craft: '开采、选矿、加工、优化处理', desc: '竹山县是中国最重要的绿松石产地，其绿松石以天蓝色、高硬度著称。宝石学研究表明，竹山绿松石颜色主要由Cu²⁺离子致色，水含量影响颜色稳定性。竹山绿松石通过古代贸易路线输送至二里头、殷墟、盘龙城等地，是中国早期文明绿松石的主要矿源。', source: '湖北竹山绿松石的特征及成因分析-陈文君；湖北竹山绿松石颜色成因及水对颜色的影响-金莉莉；湖北竹山洞子沟绿松石的宝石学及产地特征研究-吴玉瑞' },
+          { title: '竹山绿松石与二里头绿松石对比', site: '十堰竹山 / 河南偃师二里头', dynasty: '新石器时代晚期至夏商', craft: '产地溯源、宝石学对比', desc: '通过宝石学特征对比（颜色、硬度、微量元素、红外光谱等），研究发现二里头遗址出土绿松石与湖北竹山绿松石具有高度相似性，表明早在夏商时期，竹山绿松石已通过"绿松石之路"输送至中原地区。这揭示了长江中游与中原文明之间存在的物质交流网络。', source: '湖北竹山绿松石与河南偃师二里头出土绿松石宝石学对比研究-陈卓；中原先秦绿松石制品产源探索-张登毅' },
+          { title: '竹山绿松石首饰设计', site: '十堰竹山', dynasty: '现代', craft: '现代首饰设计、传统工艺创新', desc: '基于竹山绿松石的材质特性，探讨绿松石在现代首饰设计中的应用。从传统纹样中提取元素，结合现代设计语言，为绿松石的当代应用提供新思路。设计实践强调绿松石的文化符号价值与装饰功能的统一。', source: '湖北竹山绿松石首饰设计研究-储昱玲；基于现代生活美学的绿松石首饰设计研究以湖北竹山绿松石为例-何萌' }
+        ],
+        jade: [],
+        crystal: [],
+        agate: []
+      },
+      '荆门市': {
+        jade: [
+          { title: '屈家岭文化玉器', site: '荆门屈家岭遗址', dynasty: '新石器时代（约距今5000-4600年）', craft: '切割、钻孔、打磨、抛光', desc: '屈家岭文化是长江中游重要的新石器时代文化。出土玉器包括玉璜、玉玦、玉管等小型玉饰，反映了长江中游史前玉文化的初步发展，为后来的石家河文化玉器奠定了基础。', source: '屈家岭：长江中游的史前文化 (湖北省博物馆编)' },
+          { title: '楚墓出土绿松石制品', site: '荆门及周边楚墓', dynasty: '东周（春秋战国）', craft: '镶嵌、雕刻、串缀', desc: '荆门地区楚墓出土绿松石制品包括镶嵌绿松石的青铜器、绿松石珠饰等。楚式青铜器绿松石镶嵌工艺融合了中原技术与楚地审美，形成了独具特色的装饰风格。绿松石镶嵌在青铜器纹饰中起到画龙点睛的作用。', source: '楚式青铜器绿松石镶嵌工艺及思想研究-闫政旭；楚墓出土绿松石制品文化传承与创新设计研究-肖鑫蕊' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '钟祥市': {
+        turquoise: [],
+        jade: [],
+        crystal: [],
+        agate: [],
+        gemstone: [
+          { title: '明梁庄王墓出土宝石', site: '钟祥市明梁庄王墓', dynasty: '明代（永乐-宣德年间，约1411-1440年）', craft: '金银镶嵌、宝石切磨、簪钗工艺', desc: '梁庄王墓是明代亲王级墓葬，出土大量珍贵宝石首饰，包括蓝宝石、红宝石、祖母绿、猫眼石、绿松石等。金首饰臂饰工艺精湛，运用锤揲、錾刻、花丝、镶嵌等技法。部分宝石经鉴定来自东南亚及印度洋地区（如斯里兰卡蓝宝石），反映了明代中外宝石贸易的繁荣。帽顶、发簪、戒指等首饰展示了明代贵族的生活方式与审美趣味。', source: '湖北钟祥明代梁庄王墓发掘简报-梁柱；湖北钟祥明代梁庄王墓出土宝石的主要特征-杨明星等；明代梁庄王墓帽顶之研究-陆锡兴；礼制与时尚的消长：明代珠宝首饰设计-黄昊东' }
+        ]
+      },
+      '天门市': {
+        jade: [
+          { title: '石家河文化玉器', site: '天门石家河遗址', dynasty: '后石家河文化（约距今4200-3900年）', craft: '减地浮雕、透雕、阴刻、钻孔、抛光', desc: '石家河文化玉器是长江中游史前玉器的高峰，出土玉器包括玉人头像、玉虎头、玉鹰、玉蝉、玉龙、玉凤等。玉器造型生动，纹饰精细，以减地浮雕和透雕为主要技法。石家河玉器影响了后来的古蜀文明（三星堆、金沙），是长江流域玉文化的重要源头。玉器上的神兽纹饰反映了史前宗教与信仰体系。', source: '石家河文化玉器研究-陈茜；从石家河玉器看长江中游玉文化对古蜀青铜文明的影响-王方；后石家河文化玉器艺术的特征与源流考-蔡青；浅识石家河文化玉器-晏海涛' },
+          { title: '石家河文化玉器的传播与影响', site: '天门石家河', dynasty: '新石器时代晚期', craft: '玉器制作技术的跨区域传播', desc: '石家河文化玉器的影响范围远超长江中游。研究表明，石家河玉器文化向南影响了古蜀文明（三星堆玉器、金沙玉器），向东影响了后良渚文化。玉器的传播不仅是器物的流通，更是技术、信仰与审美观念的扩散。石家河玉器上的神人兽面纹可能是中国早期"饕餮纹"的源头之一。', source: '从石家河玉器看长江中游玉文化对古蜀青铜文明的影响-王方；石家河文化玉器的区域功能与普遍影响-吴桂兵；长江中下游地区后石家河与后良渚时期的文化研究-赵今' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '蕲春市': {
+        gemstone: [
+          { title: '明代王宣墓出土宝石', site: '蕲春明代王宣墓', dynasty: '明代', craft: '宝石鉴定、产地分析', desc: '蕲春明代王宣墓出土宝石的种属鉴定及产地分析显示，这批宝石包括蓝宝石、红宝石等贵重品种。通过宝石学特征和微量元素分析，推测部分宝石来源于东南亚地区，为明代宝石贸易路线研究提供了重要线索。', source: '湖北蕲春明代王宣墓出土宝石的种属鉴定及产地分析-万欣' }
+        ],
+        jade: [],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '麻城市': {
+        jade: [
+          { title: '麻城石英质玉石研究', site: '麻城地区', dynasty: '古今', craft: '宝石矿物学鉴定、成分分析', desc: '麻城地区产出石英质玉石，经宝石矿物学特征研究，对其矿物组成、结构构造、颜色成因进行了系统分析。麻城石英质玉石包括玉髓、玛瑙、碧玉等品种，为湖北省玉石资源的多样性提供了补充。', source: '湖北麻城石英质玉石宝石矿物学特征研究-付浩' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: [
+          { title: '麻城石英质玉石（玛瑙类）', site: '麻城地区', dynasty: '古今', craft: '矿物鉴定、分类评级', desc: '麻城石英质玉石中的玛瑙类品种具有独特的纹理和颜色特征。研究对其宝石学参数进行了测定，为湖北省本地玛瑙资源的开发利用提供了科学依据。', source: '湖北麻城石英质玉石宝石矿物学特征研究-付浩' }
+        ]
+      },
+      '枣阳市': {
+        jade: [
+          { title: '枣树林M168出土玉石项饰', site: '枣阳枣树林M168', dynasty: '东周', craft: '实验室考古清理、复原研究、串联工艺', desc: '枣树林M168出土的玉石项饰由多种材质组成，包括玉管、绿松石珠、玛瑙珠等。通过实验室考古方法（微观清理、三维扫描、材质分析），复原了项饰的原始串联方式。研究揭示了东周时期楚国贵族佩饰的材质组合规律和审美特征。', source: '湖北枣树林M168出土玉石项饰的实验室考古研究-张丙瑞' }
+        ],
+        turquoise: [],
+        crystal: [],
+        agate: []
+      },
+      '黄石市': {
+        jade: [],
+        turquoise: [],
+        crystal: [
+          { title: '湖北东部长江流域楚墓水晶制品', site: '黄石及鄂东地区楚墓', dynasty: '东周（春秋战国）', craft: '水晶开采、切割、打磨、钻孔', desc: '湖北东部长江流域楚墓中出土的水晶制品包括水晶珠、水晶管、水晶环等。这些水晶制品反映了楚文化对透明度高、硬度大的宝石材料的偏好，与中原地区的玉文化传统形成对比，体现了楚地独特的审美取向。', source: '湖北以东长江流域楚墓研究-张婷' }
+        ],
+        agate: []
+      }
+    }
+  },
+  '河南省': { englishName: 'Henan', hasData: false, cities: {}, placeholder: '河南省玉石文化数据整理中——包括二里头绿松石、殷墟玉器、南阳独山玉等，敬请期待。' },
+  '陕西省': { englishName: 'Shaanxi', hasData: false, cities: {}, placeholder: '陕西省玉石文化数据整理中——包括蓝田玉、西周玉器、何家村窖藏等，敬请期待。' },
+  '新疆维吾尔自治区': { englishName: 'Xinjiang', hasData: false, cities: {}, placeholder: '新疆玉石文化数据整理中——包括和田玉、哈密绿松石矿、黑山岭绿松石矿等，敬请期待。' },
+  '浙江省': { englishName: 'Zhejiang', hasData: false, cities: {}, placeholder: '浙江省玉石文化数据整理中——包括良渚文化玉器、越国玉器等，敬请期待。' },
+  '江苏省': { englishName: 'Jiangsu', hasData: false, cities: {}, placeholder: '江苏省玉石文化数据整理中——包括良渚文化玉器、吴国玉器等，敬请期待。' }
+};
+
+// ================================================================
+// 状态管理
+// ================================================================
+let currentProvince = null;
+let currentCity = null;
+let currentCategory = null;
+let mapChart = null;
+let selectedProvinceOnMap = null;
+
+// ================================================================
+// 渲染左侧导航
+// ================================================================
+function renderSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  let html = '';
+  const orderedProvinces = ['湖北省', '河南省', '陕西省', '新疆维吾尔自治区', '浙江省', '江苏省'];
+
+  for (const pname of orderedProvinces) {
+    const pdata = PROVINCE_DATA[pname];
+    if (!pdata) continue;
+    const hasData = pdata.hasData;
+    html += `<div class="province-node">`;
+    html += `<div class="province-header${hasData ? ' has-data' : ''}" data-province="${pname}" onclick="selectProvince('${pname}')">`;
+    html += `<span class="province-dot"></span>`;
+    html += `<span class="province-name">${pname}</span>`;
+    if (hasData) html += `<span class="province-badge">${Object.keys(pdata.cities).length}市</span>`;
+    html += `<span class="province-arrow">▶</span>`;
+    html += `</div>`;
+
+    // 城市列表
+    if (hasData && pdata.cities) {
+      html += `<div class="city-list" data-province-list="${pname}">`;
+      for (const [cname, categories] of Object.entries(pdata.cities)) {
+        html += `<div class="city-node" data-province="${pname}" data-city="${cname}" onclick="event.stopPropagation(); selectCity('${pname}', '${cname}')">`;
+        html += `<span class="city-icon">📍</span>${cname}`;
+        html += `</div>`;
+        // 分类标签
+        const tags = Object.entries(categories).filter(([k,v]) => v.length > 0);
+        if (tags.length > 0) {
+          html += `<div class="category-tags" data-city-tags="${pname}|${cname}">`;
+          const catNames = { jade: '玉器', turquoise: '绿松石', crystal: '水晶', agate: '玛瑙', gemstone: '宝石' };
+          for (const [cat, items] of tags) {
+            const catClass = cat === 'jade' ? 'jade' : cat === 'turquoise' ? 'turquoise' : cat === 'crystal' ? 'crystal' : cat === 'agate' ? 'agate' : 'jade';
+            html += `<span class="category-tag ${catClass}" onclick="event.stopPropagation(); selectCategory('${pname}', '${cname}', '${cat}')">${catNames[cat] || cat} (${items.length})</span>`;
+          }
+          html += `</div>`;
+        }
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  nav.innerHTML = html;
+}
+
+// ================================================================
+// 交互逻辑
+// ================================================================
+function selectProvince(pname) {
+  currentProvince = pname;
+  currentCity = null;
+  currentCategory = null;
+
+  // 更新侧边栏样式
+  document.querySelectorAll('.province-header').forEach(h => {
+    h.classList.toggle('active', h.dataset.province === pname);
+    h.classList.toggle('open', h.dataset.province === pname && PROVINCE_DATA[pname]?.hasData);
+  });
+  document.querySelectorAll('.city-list').forEach(l => {
+    l.classList.toggle('open', l.dataset.provinceList === pname && PROVINCE_DATA[pname]?.hasData);
+  });
+  document.querySelectorAll('.city-node').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('selected'));
+  document.querySelectorAll('.category-tags').forEach(t => t.style.display = 'none');
+
+  // 更新地图高亮
+  highlightMapProvince(pname);
+
+  // 如果是占位省份，显示占位信息
+  if (!PROVINCE_DATA[pname]?.hasData) {
+    showDetailEmpty(`<strong>${pname}</strong><br>${PROVINCE_DATA[pname]?.placeholder || '数据整理中，敬请期待。'}`);
+  } else {
+    showDetailEmpty(`<strong>${pname}</strong> — ${Object.keys(PROVINCE_DATA[pname].cities).length} 个城市有玉石文化遗存<br>请点击左侧城市名称浏览详情`);
+  }
+}
+
+function selectCity(pname, cname) {
+  currentProvince = pname;
+  currentCity = cname;
+  currentCategory = null;
+
+  // 打开省份
+  document.querySelectorAll('.province-header').forEach(h => {
+    h.classList.toggle('active', h.dataset.province === pname);
+    h.classList.toggle('open', h.dataset.province === pname);
+  });
+  document.querySelectorAll('.city-list').forEach(l => {
+    l.classList.toggle('open', l.dataset.provinceList === pname);
+  });
+
+  // 高亮城市
+  document.querySelectorAll('.city-node').forEach(n => {
+    n.classList.toggle('active', n.dataset.province === pname && n.dataset.city === cname);
+  });
+
+  // 显示分类标签
+  document.querySelectorAll('.category-tags').forEach(t => {
+    const shouldShow = t.dataset.cityTags === `${pname}|${cname}`;
+    t.style.display = shouldShow ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('selected'));
+
+  // 更新地图
+  highlightMapProvince(pname);
+
+  // 显示该城市的概览
+  const cityData = PROVINCE_DATA[pname]?.cities?.[cname];
+  if (cityData) {
+    const totalItems = Object.values(cityData).flat().length;
+    const catNames = { jade: '玉器', turquoise: '绿松石', crystal: '水晶', agate: '玛瑙', gemstone: '宝石' };
+    const cats = Object.entries(cityData).filter(([k,v]) => v.length > 0)
+      .map(([k,v]) => `${catNames[k]||k}(${v.length}条)`).join(' · ');
+    showDetailEmpty(`<strong>${pname} · ${cname}</strong><br>共 ${totalItems} 条记录：${cats}<br>请点击上方分类标签查看详细内容`);
+  }
+}
+
+function selectCategory(pname, cname, cat) {
+  currentProvince = pname;
+  currentCity = cname;
+  currentCategory = cat;
+
+  // 更新分类标签样式
+  document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('selected'));
+  const tagEl = document.querySelector(`.category-tags[data-city-tags="${pname}|${cname}"] .category-tag.${cat}`);
+  if (tagEl) tagEl.classList.add('selected');
+
+  // 显示内容
+  const items = PROVINCE_DATA[pname]?.cities?.[cname]?.[cat];
+  if (items && items.length > 0) {
+    renderDetailList(pname, cname, cat, items);
+  }
+}
+
+function highlightMapProvince(pname) {
+  if (!mapChart) return;
+  mapChart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+  mapChart.dispatchAction({ type: 'highlight', seriesIndex: 0, name: pname });
+}
+
+// ================================================================
+// 详情面板
+// ================================================================
+function renderDetailList(pname, cname, cat, items) {
+  const catNames = { jade: '玉器', turquoise: '绿松石', crystal: '水晶', agate: '玛瑙', gemstone: '宝石' };
+  const catName = catNames[cat] || cat;
+  const catClass = cat === 'jade' ? 'jade' : cat === 'turquoise' ? 'turquoise' : cat === 'crystal' ? 'crystal' : cat === 'agate' ? 'agate' : 'jade';
+
+  let html = '';
+  for (const item of items) {
+    html += `
+    <div style="margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+      <div class="detail-header">
+        <span class="detail-title">${item.title}</span>
+        <span class="detail-badge">${catName}</span>
+      </div>
+      <div class="detail-meta">
+        <span class="meta-item"><strong>📍 发掘地</strong> ${item.site}</span>
+        <span class="meta-item"><strong>📅 朝代</strong> ${item.dynasty}</span>
+        <span class="meta-item"><strong>🔧 工艺</strong> ${item.craft}</span>
+      </div>
+      <div class="detail-desc">${item.desc}</div>
+      <div class="detail-source">📄 来源：${item.source}</div>
+    </div>`;
+  }
+
+  document.getElementById('detailInner').innerHTML = `
+    <div class="detail-header">
+      <span class="detail-title">${pname} · ${cname} — ${catName}</span>
+      <span class="detail-badge">${items.length} 条记录</span>
+      <button class="detail-close" onclick="closeDetail()">✕</button>
+    </div>
+    ${html}
+  `;
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function showDetailEmpty(msg) {
+  document.getElementById('detailInner').innerHTML = `
+    <div class="detail-empty">
+      <span class="icon">📖</span>
+      <span class="text">${msg}</span>
+    </div>
+  `;
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+// ================================================================
+// ECharts 地图
+// ================================================================
+async function initMap() {
+  const dom = document.getElementById('china-map');
+  mapChart = echarts.init(dom);
+  mapChart.showLoading({ text: '加载地图数据...', color: '#e8b86d' });
+
+  try {
+    // 加载中国地图 GeoJSON
+    const resp = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json');
+    const geoJson = await resp.json();
+    echarts.registerMap('china', geoJson);
+    mapChart.hideLoading();
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(26,39,54,0.95)',
+        borderColor: '#2a3a4a',
+        textStyle: { color: '#c8d6e5', fontSize: 13 },
+        formatter: function(params) {
+          const pname = params.name;
+          const pdata = PROVINCE_DATA[pname];
+          if (pdata?.hasData) {
+            const cityCount = Object.keys(pdata.cities).length;
+            let itemCount = 0;
+            for (const c of Object.values(pdata.cities)) {
+              for (const items of Object.values(c)) itemCount += items.length;
+            }
+            return `<strong>${pname}</strong><br/>🏙 ${cityCount} 个城市<br/>📄 ${itemCount} 条玉石记录<br/><span style="color:#8395a7;font-size:11px;">点击查看详情</span>`;
+          }
+          return `<strong>${pname}</strong><br/><span style="color:#8395a7;">数据整理中，敬请期待</span>`;
+        }
+      },
+      series: [{
+        name: '中国玉石文化',
+        type: 'map',
+        map: 'china',
+        roam: true,
+        zoom: 1.15,
+        center: [104.5, 35.5],
+        scaleLimit: { min: 0.8, max: 5 },
+        markPoint: {
+          symbol: 'pin',
+          symbolSize: 20,
+          itemStyle: { color: '#e8b86d' },
+          label: { show: true, color: '#fff', fontSize: 9, position: 'top', distance: 2 },
+          animation: true,
+          data: [
+            { name: '随州', coord: [113.38, 31.72] },
+            { name: '荆州', coord: [112.24, 30.33] },
+            { name: '武汉', coord: [114.30, 30.60] },
+            { name: '十堰', coord: [110.79, 32.65] },
+            { name: '荆门', coord: [112.20, 31.04] },
+            { name: '钟祥', coord: [112.59, 31.17] },
+            { name: '天门', coord: [113.17, 30.66] }
+          ]
+        },
+        label: {
+          show: true,
+          color: '#5a7a8a',
+          fontSize: 9,
+          fontFamily: '"Microsoft YaHei", sans-serif'
+        },
+        emphasis: {
+          label: { show: true, color: '#fff', fontSize: 12, fontWeight: 'bold' },
+          itemStyle: { areaColor: 'rgba(232,184,109,0.35)', borderColor: '#e8b86d', borderWidth: 2, shadowBlur: 20, shadowColor: 'rgba(232,184,109,0.4)' }
+        },
+        itemStyle: {
+          areaColor: '#1a3040',
+          borderColor: '#2d4a5a',
+          borderWidth: 1,
+          shadowBlur: 0
+        },
+        select: {
+          label: { show: true, color: '#fff', fontSize: 11 },
+          itemStyle: { areaColor: 'rgba(232,184,109,0.3)', borderColor: '#e8b86d', borderWidth: 2 }
+        },
+        data: [
+          { name: '湖北省', itemStyle: { areaColor: '#1e4a5e', borderColor: '#4fc3f7', borderWidth: 1.5 }, selected: true },
+          { name: '河南省', itemStyle: { areaColor: '#1a3040' } },
+          { name: '陕西省', itemStyle: { areaColor: '#1a3040' } },
+          { name: '新疆维吾尔自治区', itemStyle: { areaColor: '#1a3040' } },
+          { name: '浙江省', itemStyle: { areaColor: '#1a3040' } },
+          { name: '江苏省', itemStyle: { areaColor: '#1a3040' } }
+        ]
+      }]
+    };
+
+    mapChart.setOption(option);
+
+    // 点击事件
+    mapChart.on('click', function(params) {
+      if (params.componentType === 'series') {
+        const pname = params.name;
+        if (pname && PROVINCE_DATA[pname]) selectProvince(pname);
+      }
+    });
+
+    // 默认选中湖北
+    selectProvince('湖北省');
+
+    // 响应式
+    window.addEventListener('resize', () => mapChart.resize());
+  } catch (e) {
+    mapChart.hideLoading();
+    console.error('地图加载失败:', e);
+    document.getElementById('china-map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8395a7;">地图加载失败，请检查网络连接后刷新页面</div>';
+  }
+}
+
+// ================================================================
+// 初始化
+// ================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderSidebar();
+  initMap();
+});
+</script>
+</body>
+</html>
